@@ -28,7 +28,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     getEvents(exportRequest.resourceId)
       .then((data) => {
         const events = normalizeEvents(data, exportRequest.resourceId, exportRequest.filters);
-        const file = exportFile(events, exportRequest.format);
+        const file = exportFile(events, exportRequest.format, exportRequest.timezone || "UTC");
         return download(file.content, file.mime, file.extension).then(() => ({ count: events.length }));
       })
       .then((result) => sendResponse({ ok: true, ...result }))

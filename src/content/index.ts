@@ -1,3 +1,5 @@
+import { getBrowserTimezone } from "../domain/timezones";
+
 function findResourceId(): string | null {
   const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
   for (const entry of entries) {
@@ -30,7 +32,7 @@ function addButton(): void {
     button.disabled = true;
     chrome.runtime.sendMessage({
       type: "export",
-      export: { resourceId, format: "ics", filters: { excludedEventIds: [], excludedCourseIds: [], excludedDays: [] } },
+      export: { resourceId, format: "ics", timezone: getBrowserTimezone(), filters: { excludedEventIds: [], excludedCourseIds: [], excludedDays: [] } },
     }, (response) => {
       button.disabled = false;
       button.textContent = response?.ok ? `Exported ${response.count} events` : "Export error";

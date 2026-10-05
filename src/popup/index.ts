@@ -1,8 +1,11 @@
 import type { ExportFormat } from "../domain/models";
+import { getBrowserTimezone, getSupportedTimezones, isValidTimezone } from "../domain/timezones";
 import "./styles.css";
 
 const app = document.querySelector<HTMLElement>("#app")!;
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const browserTimezone = getBrowserTimezone();
+const supportedTimezones = getSupportedTimezones(browserTimezone);
 
 function render(message: string): void { app.innerHTML = `<div class="empty-state"><p class="muted">${message}</p></div>`; }
 
@@ -10,6 +13,7 @@ async function init(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab.id) return render("Open the CELCAT calendar.");
   chrome.tabs.sendMessage(tab.id, { type: "context" }, (context) => {
+    if (chrome.runtime.lastError) return render("Open the CELCAT calendar to export a schedule.");
     const resourceId = context?.resourceId as string | null;
     if (!resourceId) return render("No active CELCAT schedule found.");
     chrome.runtime.sendMessage({ type: "load-events", resourceId }, (summary) => {
@@ -29,6 +33,11 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     <div class="field-group">
       <label class="field-label" for="format">Export Format</label>
       <select id="format" class="select-input"><option value="ics">iCalendar (.ics)</option><option value="csv">CSV</option><option value="json">JSON</option></select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="timezone">Time Zone</label>
+      <select id="timezone" class="select-input">${supportedTimezones.map((timezone) => `<option value="${timezone}"${timezone === browserTimezone ? " selected" : ""}>${timezone}</option>`).join("")}</select>
     </div>
     
     <div class="section-head">
@@ -63,8 +72,15 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     const excludedCourseIds = [...document.querySelectorAll<HTMLInputElement>("[data-course]:not(:checked)")].map((input) => input.dataset.course!);
     const excludedDays = [...document.querySelectorAll<HTMLInputElement>("[data-day]:checked")].map((input) => Number(input.dataset.day));
     const format = document.querySelector<HTMLSelectElement>("#format")!.value as ExportFormat;
+    const timezoneInput = document.querySelector<HTMLSelectElement>("#timezone")!;
+    if (!isValidTimezone(timezoneInput.value)) {
+      document.querySelector("#status")!.textContent = "Enter a valid IANA time zone, for example Europe/Warsaw.";
+      timezoneInput.focus();
+      return;
+    }
+    const timezone = timezoneInput.value;
     
-    chrome.runtime.sendMessage({ type: "export", export: { resourceId, format, filters: { excludedEventIds: [], excludedCourseIds, excludedDays } } }, (response) => {
+    chrome.runtime.sendMessage({ type: "export", export: { resourceId, format, timezone, filters: { excludedEventIds: [], excludedCourseIds, excludedDays } } }, (response) => {
       document.querySelector("#status")!.textContent = response?.ok ? `Exported ${response.count} events.` : (response?.error || "Export failed.");
     });
   });

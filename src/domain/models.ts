@@ -48,5 +48,6 @@ export interface ExportFilters {
 export interface ExportRequest {
   resourceId: string;
   format: ExportFormat;
+  timezone: string;
   filters: ExportFilters;
 }
