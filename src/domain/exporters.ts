@@ -2,7 +2,7 @@ import type { CalendarEvent, ExportFormat } from "./models";
 import { resolveTimezone } from "./timezones";
 
 const CRLF = "\r\n";
-const escapeText = (value: string) => value.replace(/[\\;,\n]/g, (character) => character === "\n" ? "\\n" : `\\${character}`);
+const escapeText = (value: string | null | undefined) => String(value ?? "").replace(/[\\;,\n]/g, (character) => character === "\n" ? "\\n" : `\\${character}`);
 const pad = (value: number) => String(value).padStart(2, "0");
 export interface ExportedFile { content: string; mime: string; extension: string; filename: string; }
 

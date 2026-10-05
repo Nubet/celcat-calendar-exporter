@@ -1,4 +1,5 @@
 import { getBrowserTimezone, getSupportedTimezones } from "../domain/timezones";
+import { downloadFile } from "../ui/download";
 
 type Course = { id: string; name: string };
 type DateRange = { start: string; end: string } | null;
@@ -142,7 +143,14 @@ function openPanel(resourceId: string): void {
     chrome.runtime.sendMessage({
       type: "export",
       export: { resourceId, format, timezone, filters: { excludedEventIds: [], excludedCourseIds, excludedDays, startDate: dateStart.value, endDate: dateEnd.value } },
-    }, (response) => { status.textContent = response?.ok ? `Exported ${response.count} events.` : (response?.error || "Export failed."); });
+    }, (response) => {
+      if (response?.ok && response.file) {
+        downloadFile(response.file);
+        status.textContent = `Exported ${response.count} events.`;
+      } else {
+        status.textContent = response?.error || "Export failed.";
+      }
+    });
   });
 }
 

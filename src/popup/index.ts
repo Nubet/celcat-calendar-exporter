@@ -1,5 +1,6 @@
 import type { ExportFormat } from "../domain/models";
 import { getBrowserTimezone, getSupportedTimezones, isValidTimezone } from "../domain/timezones";
+import { downloadFile } from "../ui/download";
 import "./styles.css";
 
 const app = document.querySelector<HTMLElement>("#app")!;
@@ -105,7 +106,12 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     }
     
     chrome.runtime.sendMessage({ type: "export", export: { resourceId, format, timezone, filters: { excludedEventIds: [], excludedCourseIds, excludedDays, startDate: startDateInput.value, endDate: endDateInput.value } } }, (response) => {
-      document.querySelector("#status")!.textContent = response?.ok ? `Exported ${response.count} events.` : (response?.error || "Export failed.");
+      if (response?.ok && response.file) {
+        downloadFile(response.file);
+        document.querySelector("#status")!.textContent = `Exported ${response.count} events.`;
+      } else {
+        document.querySelector("#status")!.textContent = response?.error || "Export failed.";
+      }
     });
   });
 }

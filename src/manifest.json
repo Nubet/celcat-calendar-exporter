@@ -3,7 +3,7 @@
   "name": "CELCAT Calendar Exporter",
   "version": "0.1.0",
   "description": "Export CELCAT schedule to iCalendar, CSV, or JSON.",
-  "permissions": ["downloads"],
+  "permissions": [],
   "host_permissions": ["https://lodz.celcat.cloud/*"],
   "background": {
     "service_worker": "./background.ts"

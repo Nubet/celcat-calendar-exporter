@@ -11,17 +11,19 @@ async function getEvents(resourceId: string): Promise<CelcatEventsResponse> {
   return response.json() as Promise<CelcatEventsResponse>;
 }
 
-function downloadText(content: string, mime: string, filename: string): Promise<number> {
-  const url = `data:${mime};charset=utf-8,${encodeURIComponent(content)}`;
-  return chrome.downloads.download({ url, filename, saveAs: true });
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
-function downloadZip(files: ReturnType<typeof exportFiles>): Promise<number> {
+function exportPayload(files: ReturnType<typeof exportFiles>, zip: boolean) {
+  if (!zip) {
+    const [file] = files;
+    return { content: file.content, mime: file.mime, filename: file.filename };
+  }
   const archive = zipSync(Object.fromEntries(files.map((file) => [file.filename, new TextEncoder().encode(file.content)])));
-  let binary = "";
-  for (const byte of archive) binary += String.fromCharCode(byte);
-  const url = `data:application/zip;base64,${btoa(binary)}`;
-  return chrome.downloads.download({ url, filename: "celcat-export-by-category.zip", saveAs: true });
+  return { base64: bytesToBase64(archive), mime: "application/zip", filename: "celcat-export-by-category.zip" };
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -48,10 +50,7 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
       .then((data) => {
         const events = normalizeEvents(data, exportRequest.resourceId, exportRequest.filters);
         const files = exportFiles(events, exportRequest.format, exportRequest.timezone || "UTC");
-        const downloadPromise = exportRequest.format === "ics-by-category"
-          ? downloadZip(files)
-          : downloadText(files[0].content, files[0].mime, files[0].filename);
-        return downloadPromise.then(() => ({ count: events.length }));
+        return { count: events.length, file: exportPayload(files, exportRequest.format === "ics-by-category") };
       })
       .then((result) => sendResponse({ ok: true, ...result }))
       .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));

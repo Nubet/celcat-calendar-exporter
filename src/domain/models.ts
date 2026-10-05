@@ -15,7 +15,7 @@ export interface CelcatRawEvent {
   modules: Array<{ type: number; id: string }>;
   staff: Array<{ type: number; id: string }>;
   facilities: Array<{ type: number; id: string }>;
-  eventCategoryId: string;
+  eventCategoryId: string | null;
   color?: number | string | null;
   eventName: string | null;
   notes: string | null;
