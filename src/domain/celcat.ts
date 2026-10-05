@@ -62,7 +62,12 @@ export function normalizeEvents(response: CelcatEventsResponse, resourceId: stri
 }
 
 export function listCourses(response: CelcatEventsResponse): Array<{ id: string; name: string }> {
-  return Object.entries(response.names[String(COURSE)] ?? {})
-    .map(([id, value]) => ({ id, name: value.name?.trim() || value.uniqueName.trim() }))
+  const names = response.names[String(COURSE)] ?? {};
+  const ids = new Set([
+    ...Object.keys(names),
+    ...response.events.flatMap((event) => event.modules.filter((module) => module.type === COURSE).map((module) => module.id)),
+  ]);
+  return [...ids]
+    .map((id) => ({ id, name: names[id]?.name?.trim() || names[id]?.uniqueName?.trim() || `Course ${id}` }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
