@@ -12,6 +12,16 @@ Built with [Extension.js](https://extension.js.org/) for Chrome, Firefox, and Ed
 - Select a date range, courses, weekdays, and time zone.
 - Use the browser popup or the in-page `Export CELCAT` panel.
 
+## Screenshots
+
+The in-page panel is available directly from the Lodz CELCAT page:
+
+![CELCAT calendar with the Export CELCAT button](docs/screenshots/export-button.png)
+
+The export dialog provides format, time zone, date range, course, and weekday filters:
+
+![CELCAT export dialog](docs/screenshots/export-menu.png)
+
 
 > [!NOTE]
 > Google Calendar ignores per-event colors in imported `.ics` files. For colored imports, use the ZIP export and import each class-type file into a separate Google Calendar.
