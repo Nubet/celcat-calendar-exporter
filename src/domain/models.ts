@@ -45,6 +45,8 @@ export interface ExportFilters {
   excludedEventIds: string[];
   excludedCourseIds: string[];
   excludedDays: number[];
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface ExportRequest {

@@ -97,6 +97,19 @@ main {
   box-shadow: 0 0 0 1px var(--primary);
 }
 
+.date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.date-range label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 /* Section headers */
 .section-head {
   display: flex;

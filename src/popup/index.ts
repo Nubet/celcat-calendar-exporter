@@ -18,12 +18,12 @@ async function init(): Promise<void> {
     if (!resourceId) return render("No active CELCAT schedule found.");
     chrome.runtime.sendMessage({ type: "load-events", resourceId }, (summary) => {
       if (!summary?.ok) return render(summary?.error || "Failed to fetch the schedule.");
-      renderForm(resourceId, summary.courses);
+      renderForm(resourceId, summary.courses, summary.dateRange);
     });
   });
 }
 
-function renderForm(resourceId: string, courses: Array<{ id: string; name: string }>): void {
+function renderForm(resourceId: string, courses: Array<{ id: string; name: string }>, dateRange: { start: string; end: string } | null): void {
   app.innerHTML = `
     <header class="header">
       <div class="header-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
@@ -38,6 +38,14 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     <div class="field-group">
       <label class="field-label" for="timezone">Time Zone</label>
       <select id="timezone" class="select-input">${supportedTimezones.map((timezone) => `<option value="${timezone}"${timezone === browserTimezone ? " selected" : ""}>${timezone}</option>`).join("")}</select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Date range</label>
+      <div class="date-range">
+        <label><span>From</span><input id="start-date" class="select-input" type="date" value="${dateRange?.start ?? ""}" max="${dateRange?.end ?? ""}"></label>
+        <label><span>To</span><input id="end-date" class="select-input" type="date" value="${dateRange?.end ?? ""}" min="${dateRange?.start ?? ""}"></label>
+      </div>
     </div>
     
     <div class="section-head">
@@ -79,8 +87,14 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
       return;
     }
     const timezone = timezoneInput.value;
+    const startDateInput = document.querySelector<HTMLInputElement>("#start-date")!;
+    const endDateInput = document.querySelector<HTMLInputElement>("#end-date")!;
+    if (!startDateInput.value || !endDateInput.value || startDateInput.value > endDateInput.value) {
+      document.querySelector("#status")!.textContent = "Choose a valid date range.";
+      return;
+    }
     
-    chrome.runtime.sendMessage({ type: "export", export: { resourceId, format, timezone, filters: { excludedEventIds: [], excludedCourseIds, excludedDays } } }, (response) => {
+    chrome.runtime.sendMessage({ type: "export", export: { resourceId, format, timezone, filters: { excludedEventIds: [], excludedCourseIds, excludedDays, startDate: startDateInput.value, endDate: endDateInput.value } } }, (response) => {
       document.querySelector("#status")!.textContent = response?.ok ? `Exported ${response.count} events.` : (response?.error || "Export failed.");
     });
   });

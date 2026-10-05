@@ -27,8 +27,18 @@ function downloadZip(files: ReturnType<typeof exportFiles>): Promise<number> {
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
   const request = message as { type?: string; resourceId?: string; export?: ExportRequest };
   if (request.type === "load-events" && request.resourceId) {
-    getEvents(request.resourceId)
-      .then((data) => sendResponse({ ok: true, courses: listCourses(data), eventCount: data.events.length }))
+    const resourceId = request.resourceId;
+    getEvents(resourceId)
+      .then((data) => {
+        const events = normalizeEvents(data, resourceId);
+        const dates = events.map((event) => event.start.toISOString().slice(0, 10));
+        sendResponse({
+          ok: true,
+          courses: listCourses(data),
+          eventCount: data.events.length,
+          dateRange: dates.length ? { start: dates[0], end: dates[dates.length - 1] } : null,
+        });
+      })
       .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));
     return true;
   }

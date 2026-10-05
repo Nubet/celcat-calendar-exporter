@@ -29,6 +29,8 @@ export function normalizeEvents(response: CelcatEventsResponse, resourceId: stri
   const excludedEvents = new Set(filters?.excludedEventIds ?? []);
   const excludedCourses = new Set(filters?.excludedCourseIds ?? []);
   const excludedDays = new Set(filters?.excludedDays ?? []);
+  const startDate = filters?.startDate ? Date.parse(`${filters.startDate}T00:00:00.000Z`) : Number.NEGATIVE_INFINITY;
+  const endDate = filters?.endDate ? Date.parse(`${filters.endDate}T23:59:59.999Z`) : Number.POSITIVE_INFINITY;
   const result: CalendarEvent[] = [];
 
   for (const event of response.events) {
@@ -39,6 +41,7 @@ export function normalizeEvents(response: CelcatEventsResponse, resourceId: stri
     for (let weekIndex = 0; weekIndex < event.weeks.length; weekIndex += 1) {
       if (!event.weeks[weekIndex] || excludedDays.has(event.dayOfWeek)) continue;
       const start = occurrenceDate(range.startDate, weekIndex, event.dayOfWeek, event.startTime);
+      if (start.getTime() < startDate || start.getTime() > endDate) continue;
       result.push({
         id: `${id}-${start.toISOString()}`,
         courseId: currentCourseId,

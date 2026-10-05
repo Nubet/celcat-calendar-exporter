@@ -29,4 +29,11 @@ describe("CELCAT normalization", () => {
     expect(normalizeEvents(response, "resource", { excludedCourseIds: ["1"], excludedEventIds: [], excludedDays: [] })).toHaveLength(0);
     expect(normalizeEvents(response, "resource", { excludedCourseIds: [], excludedEventIds: [], excludedDays: [1] })).toHaveLength(0);
   });
+
+  it("filters occurrences by an inclusive date range", () => {
+    expect(normalizeEvents(response, "resource", {
+      excludedCourseIds: [], excludedEventIds: [], excludedDays: [],
+      startDate: "2026-10-12", endDate: "2026-10-12",
+    })).toHaveLength(1);
+  });
 });
