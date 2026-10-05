@@ -1,0 +1,169 @@
+name: Release CELCAT Calendar Exporter
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the v prefix
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: Prepare release tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version: $VERSION"
+            exit 1
+          fi
+
+      - name: Update version files
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="$VERSION" node <<'NODE'
+          const fs = require("node:fs");
+          const version = process.env.VERSION;
+
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          packageJson.version = version;
+          fs.writeFileSync("package.json", JSON.stringify(packageJson, null, 2) + "\n");
+
+          const lockfile = JSON.parse(fs.readFileSync("package-lock.json", "utf8"));
+          lockfile.version = version;
+          lockfile.packages[""].version = version;
+          fs.writeFileSync("package-lock.json", JSON.stringify(lockfile, null, 2) + "\n");
+
+          const manifest = JSON.parse(fs.readFileSync("src/manifest.json", "utf8"));
+          manifest.version = version;
+          fs.writeFileSync("src/manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+          NODE
+
+      - name: Commit version and create tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          RELEASE_TAG="v$VERSION"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release tag already exists: $RELEASE_TAG"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json src/manifest.json
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: bump version to $VERSION"
+            git push origin HEAD:main
+          fi
+
+          git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
+          git push origin "$RELEASE_TAG"
+
+  release:
+    name: Build and publish release
+    needs: prepare-release
+    if: >-
+      always() &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') &&
+      needs.prepare-release.result == 'skipped') ||
+      (github.event_name == 'workflow_dispatch' && needs.prepare-release.result == 'success'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Validate release version
+        env:
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+        run: |
+          set -eu
+          VERSION="${TAG_NAME#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $TAG_NAME"
+            exit 1
+          fi
+
+          VERSION="$VERSION" node <<'NODE'
+          const fs = require("node:fs");
+          const expected = process.env.VERSION;
+
+          for (const file of ["package.json", "package-lock.json", "src/manifest.json"]) {
+            const json = JSON.parse(fs.readFileSync(file, "utf8"));
+            const actual = file === "package-lock.json" ? json.packages[""].version : json.version;
+            if (actual !== expected) {
+              console.error(`${file} has version ${actual}; expected ${expected}`);
+              process.exit(1);
+            }
+          }
+          NODE
+
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Build browser packages
+        run: |
+          set -eu
+
+          for browser in chrome edge firefox; do
+            npx extension build \
+              --browser "$browser" \
+              --zip \
+              --zip-filename "celcat-calendar-exporter-${TAG_NAME}.zip" \
+              --silent
+          done
+
+          test "$(find dist -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 3
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG_NAME" \
+            dist/*.zip \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "CELCAT Calendar Exporter $TAG_NAME" \
+            --generate-notes \
+            --verify-tag
