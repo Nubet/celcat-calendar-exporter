@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "CELCAT Calendar Exporter",
+  "version": "0.1.0",
+  "description": "Export CELCAT schedule to iCalendar, CSV, or JSON.",
+  "permissions": ["downloads"],
+  "host_permissions": ["https://lodz.celcat.cloud/*"],
+  "background": {
+    "service_worker": "./background.ts"
+  },
+  "action": {
+    "default_title": "Export CELCAT",
+    "default_popup": "./popup/index.html"
+  },
+  "firefox:browser_specific_settings": {
+    "gecko": {
+      "id": "celcat-calendar-exporter@example.com",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://lodz.celcat.cloud/cal/*"],
+      "js": ["./content/index.ts"],
+      "css": ["./content/styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

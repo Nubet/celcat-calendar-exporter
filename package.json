@@ -1,0 +1,19 @@
+{
+  "name": "celcat-calendar-exporter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "extension dev",
+    "build": "extension build --browser chrome,firefox,edge",
+    "build:chrome": "extension build --browser chrome",
+    "build:firefox": "extension build --browser firefox",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "extension": "^4.1.19",
+    "typescript": "^7.0.2",
+    "vitest": "5.0.3"
+  }
+}

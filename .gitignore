@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Extension.js build output and local session state
+dist/
+.extension-js/
+
+# Coverage and test artifacts
+coverage/
+.vitest/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE settings
+.idea/
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
