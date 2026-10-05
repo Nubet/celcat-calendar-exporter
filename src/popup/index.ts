@@ -32,7 +32,7 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     
     <div class="field-group">
       <label class="field-label" for="format">Export Format</label>
-      <select id="format" class="select-input"><option value="ics">iCalendar (.ics)</option><option value="csv">CSV</option><option value="json">JSON</option></select>
+      <select id="format" class="select-input"><option value="ics-by-category">One .ics per class type &mdash; .zip</option><option value="ics">All classes &mdash; one .ics file</option><option value="csv">CSV</option><option value="json">JSON</option></select>
     </div>
 
     <div class="field-group">

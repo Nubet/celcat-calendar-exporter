@@ -47,6 +47,7 @@ export function normalizeEvents(response: CelcatEventsResponse, resourceId: stri
         teacher: event.staff.map((item) => lookup(response, STAFF, item.id)).filter(Boolean).join(", "),
         room: event.facilities.map((item) => lookup(response, FACILITY, item.id)).filter(Boolean).join(", "),
         category: lookup(response, ACTIVITY_CATEGORY, event.eventCategoryId) || event.eventCategoryId,
+        color: event.color ?? null,
         notes: [event.eventName, event.notes].filter(Boolean).join("\n"),
         start,
         end: addMinutes(start, event.duration),

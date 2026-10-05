@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toCsv, toIcs, toJson } from "../src/domain/exporters";
+import { exportFiles, toCsv, toIcs, toJson } from "../src/domain/exporters";
 
 const event = {
   id: "e-1", courseId: "c-1", course: "Data Analysis", type: "Lecture",
@@ -26,5 +26,16 @@ describe("exporters", () => {
 
   it("creates readable JSON", () => {
     expect(JSON.parse(toJson([event]))).toEqual([{ ...event, start: event.start.toISOString(), end: event.end.toISOString() }]);
+  });
+
+  it("creates one ICS file per activity category", () => {
+    const files = exportFiles([
+      { ...event, category: "Lecture", color: 11 },
+      { ...event, id: "e-2", category: "Project", color: 13 },
+    ], "ics-by-category", "Europe/Warsaw");
+    expect(files.map((file) => file.filename)).toEqual(["celcat-lecture.ics", "celcat-project.ics"]);
+    expect(files[0].content).toContain("X-WR-CALNAME:CELCAT - Lecture");
+    expect(files[0].content).toContain("COLOR:#");
+    expect(files[0].content).toContain("X-CELCAT-COLOR-ID:11");
   });
 });

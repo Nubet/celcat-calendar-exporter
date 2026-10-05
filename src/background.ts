@@ -1,4 +1,5 @@
-import { exportFile } from "./domain/exporters";
+import { zipSync } from "fflate";
+import { exportFiles } from "./domain/exporters";
 import { listCourses, normalizeEvents } from "./domain/celcat";
 import type { CelcatEventsResponse, ExportRequest } from "./domain/models";
 
@@ -10,9 +11,17 @@ async function getEvents(resourceId: string): Promise<CelcatEventsResponse> {
   return response.json() as Promise<CelcatEventsResponse>;
 }
 
-function download(content: string, mime: string, extension: string): Promise<number> {
+function downloadText(content: string, mime: string, filename: string): Promise<number> {
   const url = `data:${mime};charset=utf-8,${encodeURIComponent(content)}`;
-  return chrome.downloads.download({ url, filename: `celcat-export.${extension}`, saveAs: true });
+  return chrome.downloads.download({ url, filename, saveAs: true });
+}
+
+function downloadZip(files: ReturnType<typeof exportFiles>): Promise<number> {
+  const archive = zipSync(Object.fromEntries(files.map((file) => [file.filename, new TextEncoder().encode(file.content)])));
+  let binary = "";
+  for (const byte of archive) binary += String.fromCharCode(byte);
+  const url = `data:application/zip;base64,${btoa(binary)}`;
+  return chrome.downloads.download({ url, filename: "celcat-export-by-category.zip", saveAs: true });
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
@@ -28,8 +37,11 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
     getEvents(exportRequest.resourceId)
       .then((data) => {
         const events = normalizeEvents(data, exportRequest.resourceId, exportRequest.filters);
-        const file = exportFile(events, exportRequest.format, exportRequest.timezone || "UTC");
-        return download(file.content, file.mime, file.extension).then(() => ({ count: events.length }));
+        const files = exportFiles(events, exportRequest.format, exportRequest.timezone || "UTC");
+        const downloadPromise = exportRequest.format === "ics-by-category"
+          ? downloadZip(files)
+          : downloadText(files[0].content, files[0].mime, files[0].filename);
+        return downloadPromise.then(() => ({ count: events.length }));
       })
       .then((result) => sendResponse({ ok: true, ...result }))
       .catch((error: unknown) => sendResponse({ ok: false, error: String(error) }));

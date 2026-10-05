@@ -1,4 +1,4 @@
-export type ExportFormat = "ics" | "csv" | "json";
+export type ExportFormat = "ics" | "csv" | "json" | "ics-by-category";
 
 export type CelcatNameMap = Record<string, Record<string, {
   uniqueName: string;
@@ -16,6 +16,7 @@ export interface CelcatRawEvent {
   staff: Array<{ type: number; id: string }>;
   facilities: Array<{ type: number; id: string }>;
   eventCategoryId: string;
+  color?: number | string | null;
   eventName: string | null;
   notes: string | null;
 }
@@ -34,6 +35,7 @@ export interface CalendarEvent {
   teacher: string;
   room: string;
   category: string;
+  color?: number | string | null;
   notes: string;
   start: Date;
   end: Date;
