@@ -24,7 +24,7 @@ async function init(): Promise<void> {
 }
 
 function renderForm(resourceId: string, courses: Array<{ id: string; name: string }>, dateRange: { start: string; end: string } | null): void {
-  app.innerHTML = `
+  app.innerHTML = `<div class="popup-scroll">
     <header class="header">
       <div class="header-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
       <h1 class="header-title">CELCAT Exporter</h1>
@@ -66,7 +66,17 @@ function renderForm(resourceId: string, courses: Array<{ id: string; name: strin
     <div class="footer">
       <button class="btn-primary" id="export" type="button">Export Schedule</button>
       <p id="status" class="status-msg"></p>
-    </div>`;
+    </div>
+    <div class="scroll-hint" aria-hidden="true">Scroll for more <span>↓</span></div>
+  </div>`;
+
+  const scrollArea = document.querySelector<HTMLElement>(".popup-scroll")!;
+  const updateScrollHint = () => {
+    const atBottom = scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 2;
+    scrollArea.classList.toggle("is-at-bottom", atBottom);
+  };
+  scrollArea.addEventListener("scroll", updateScrollHint, { passive: true });
+  requestAnimationFrame(updateScrollHint);
   
   const toggle = document.querySelector<HTMLButtonElement>("#toggle")!;
   toggle.addEventListener("click", () => {
